@@ -1,9 +1,11 @@
-from configuration import TOKEN
-import telebot
-from telebot import types
 import json
 
-with open('database.json', encoding='utf-8') as db:
+import telebot
+from telebot import types
+
+from configuration import TOKEN
+
+with open("database.json", encoding="utf-8") as db:
     data = json.load(db)
 # В файле database.json хранятся все данные по экспонатам в формате
 # словарей со значениями
@@ -26,7 +28,7 @@ messages = {}
 # Это нужно для проверки на дублирование нажатий. См. функцию check_duplicate
 
 
-def create_keyboard(buttons):
+def create_keyboard(buttons: list) -> types.ReplyKeyboardMarkup:
     """
     Универсальная функция создания кнопок в нашем телеграм-боте
 
@@ -38,13 +40,19 @@ def create_keyboard(buttons):
     resize_keyboard=True обозначает способность клавиатуры подстраиваться
     под размер экрана устройства.
     row_width=1 обозначает, что в каждой строке будет лишь по одной кнопке
+
+    Args:
+        buttons (list): список строк, представляющих собой текст на кнопках.
+
+    Returns:
+        types.ReplyKeyboardMarkup: созданная клавиатура
     """
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     keyboard.add(*buttons)
     return keyboard
 
 
-def check_duplicate(message):
+def check_duplicate(message) -> bool:
     """
     Проверяет, была ли уже обработана кнопка с текстом, указанным в
     сообщении message.
@@ -53,14 +61,21 @@ def check_duplicate(message):
     которые, в свою очередь, являются текстом с reply-кнопок.
 
     Возвращает True, если кнопка была уже обработана, иначе - False.
+
+    Args:
+        message (telebot.types.Message): сообщение от пользователя
+
+    Returns:
+        bool: True, если кнопка была уже обработана, иначе - False.
+
     """
     chat_id = message.chat.id
     text = message.text
 
     # Проверка на специальные кнопки, которые могут быть нажаты повторно
-    if text in ('<<- Вернуться назад',
-                '<<--- Вернуться назад',
-                'Вернуться в начало'):
+    if text in ("<<- Вернуться назад",
+                "<<--- Вернуться назад",
+                "Вернуться в начало"):
         return False
 
     # Если для юзера еще нет сохраненного текста, сохраняем текущий текст
@@ -78,8 +93,8 @@ def check_duplicate(message):
     return False
 
 
-@bot.message_handler(commands=['start'])
-def starter(message):
+@bot.message_handler(commands=["start"])
+def starter(message) -> None:
     """
     Функция запуска бота и вызова главного меню
 
@@ -88,6 +103,9 @@ def starter(message):
     Если кнопка была нажата повторно, функция завершает свою работу.
     Иначе инициализирует новую сессию пользователя, отправляет приветственное
     сообщение и создает клавиатуру с вариантами выбора типа гида.
+
+    Args:
+        message (telebot.types.Message): сообщение от пользователя
     """
 
     # Тут и далее условие 'if check_duplicate' проверяет не дублируется ли
@@ -95,10 +113,10 @@ def starter(message):
     if check_duplicate(message):
         return
     chat_id = message.chat.id
-    guide_selection[chat_id] = {'guide_type': '', 'section_type': ''}
+    guide_selection[chat_id] = {"guide_type": "", "section_type": ""}
 
     # Отправка приветственного сообщения и клавиатуры выбора типа гида
-    mainkeys = create_keyboard(['Аудиогид', 'Текстовый гид', 'Видеогид'])
+    mainkeys = create_keyboard(["Аудиогид", "Текстовый гид", "Видеогид"])
     bot.send_message(chat_id, "Добро пожаловать в <b>Музей Пинбола Go "
                               "Pinball</b>! \n\nВыберите, каким гидом вам "
                               "будет удобнее воспользоваться.",
@@ -107,8 +125,8 @@ def starter(message):
     bot.register_next_step_handler_by_chat_id(chat_id, section_selection)
 
 
-@bot.message_handler(content_types=['text'])
-def section_selection(message):
+@bot.message_handler(content_types=["text"])
+def section_selection(message) -> None:
     """
     Обработчик текстовых сообщений, предназначенных для выбора типа гида.
 
@@ -122,19 +140,22 @@ def section_selection(message):
 
     chat_id = message.chat.id
     guide_type = message.text
-    guide_selection[chat_id]['guide_type'] = guide_type
+    guide_selection[chat_id]["guide_type"] = guide_type
 
     # Отправка сообщения с вариантами разделов гида
-    if message.text in {'Аудиогид', 'Текстовый гид'}:
-        sectionkeys = create_keyboard(['Вступление', 'Аркады',
-                                       'Неигровые экспонаты', 'Пинболы',
-                                       '<<- Вернуться назад'])
-        bot.send_message(chat_id, f'Вы выбрали раздел '
-                                  f'<b>{guide_type}</b>.\n\nОтлично!'
-                                  f'\nТеперь выберите раздел гида.',
-                         reply_markup=sectionkeys, parse_mode='HTML')
+    if message.text in {"Аудиогид", "Текстовый гид"}:
+        sectionkeys = create_keyboard(["Вступление",
+                                        "Аркады",
+                                        "Неигровые экспонаты",
+                                        "Пинболы",
+                                        "<<- Вернуться назад"])
+        bot.send_message(chat_id, f"Вы выбрали раздел "
+                                        f"<b>{guide_type}</b>.\n\nОтлично!"
+                                        f"\nТеперь выберите раздел гида.",
+                                        reply_markup=sectionkeys,
+                                        parse_mode="HTML")
         bot.register_next_step_handler_by_chat_id(chat_id, section_showpiece)
-    elif message.text in {'Видеогид'}:
+    elif message.text in {"Видеогид"}:
         videoguide(message)
 
     # Тут и далее функция text_intrude вызывается при вводе произвольного
@@ -143,8 +164,8 @@ def section_selection(message):
         text_intrude(message)
 
 
-@bot.message_handler(content_types=['text'])
-def section_showpiece(message):
+@bot.message_handler(content_types=["text"])
+def section_showpiece(message) -> None:
     """
     Обработчик текста для выбора раздела гида и предоставления напутствия.
 
@@ -154,10 +175,10 @@ def section_showpiece(message):
     """
     chat_id = message.chat.id
     section_type = message.text
-    guide_selection[chat_id]['section_type'] = section_type
+    guide_selection[chat_id]["section_type"] = section_type
 
     # Отправка сообщения с напутственным сообщением
-    if message.text in {'Аркады', 'Неигровые экспонаты', 'Пинболы'}:
+    if message.text in {"Аркады", "Неигровые экспонаты", "Пинболы"}:
         bot.send_message(chat_id, f'Хотите больше узнать про <b>'
                                   f'{section_type.lower()}</b>?'
                                   f'\n\nХороший выбор!'
@@ -167,23 +188,23 @@ def section_showpiece(message):
                          parse_mode='HTML')
 
         # Вызов соответствующей функции для обработки выбранного раздела
-        if message.text == 'Аркады':
+        if message.text == "Аркады":
             arcades(message)
-        elif message.text == 'Неигровые экспонаты':
+        elif message.text == "Неигровые экспонаты":
             npm(message)
-        elif message.text == 'Пинболы':
+        elif message.text == "Пинболы":
             pinballs(message)
-    elif message.text == '<<- Вернуться назад':
+    elif message.text == "<<- Вернуться назад":
         guide_selection[chat_id] = {}  # Сброс выбора раздела
         starter(message)  # Возврат в начальное меню
-    elif message.text in {'Вступление'}:
+    elif message.text in {"Вступление"}:
         intro(message)
     else:
         text_intrude(message)
 
 
-@bot.message_handler(content_types=['text'])
-def intro(message):
+@bot.message_handler(content_types=["text"])
+def intro(message) -> None:
     """
     Функция-обработчик для предоставления вводных знаний по гиду.
 
@@ -194,21 +215,21 @@ def intro(message):
         return
 
     chat_id = message.chat.id
-    backkey = create_keyboard(['<<- Вернуться назад'])
+    backkey = create_keyboard(["<<- Вернуться назад"])
 
     # Отправка введения к выбранному виду гида
     for key, value in guide_selection.items():
-        if value.get('guide_type') == 'Аудиогид':
-            bot.send_voice(chat_id, voice=open(data[0]['audioguide'], 'rb'),
-                           reply_markup=backkey)
-        elif value.get('guide_type') == 'Текстовый гид':
-            bot.send_message(chat_id, data[0]['textguide'], parse_mode='HTML',
-                             reply_markup=backkey)
+        if value.get("guide_type") == "Аудиогид":
+            bot.send_voice(chat_id, voice=open(data[0]["audioguide"], "rb"),
+                reply_markup=backkey)
+        elif value.get("guide_type") == "Текстовый гид":
+            bot.send_message(chat_id, data[0]["textguide"], parse_mode="HTML",
+                reply_markup=backkey)
     bot.register_next_step_handler_by_chat_id(chat_id, back_to_menu)
 
 
-@bot.message_handler(content_types=['text'])
-def arcades(message):
+@bot.message_handler(content_types=["text"])
+def arcades(message) -> None:
     """
     Функция-обработчик для предоставления информаций по разделу "Аркады".
 
@@ -220,22 +241,21 @@ def arcades(message):
         return
     chat_id = message.chat.id
 
-    # Создаём список кнопок, используя генератор списка. Опираемся на
-    # данные из файла database.json. Аркады там находятся в числовом
-    # диапазоне от 1 до 14 включительно.
-    arcade_buttons = [item['name'] for item in data
-                      if 0 < data.index(item) < 15]
+    # Создаём список кнопок, используя генератор списка. Тут и
+    # далее опираемся на ключ "type" из файла database.json.
+    arcade_buttons = [item["name"] for item in data if
+                      item["type"] == "Arcade"]
 
     # Добавляем кнопку для возвращения в главное меню
-    arcade_buttons.append('<<- Вернуться назад')
+    arcade_buttons.append("<<- Вернуться назад")
     arcadekeys = create_keyboard(arcade_buttons)
     bot.send_message(chat_id, 'О какой из аркад вам рассказать?',
                      reply_markup=arcadekeys)
     bot.register_next_step_handler_by_chat_id(chat_id, final_giver)
 
 
-@bot.message_handler(content_types=['text'])
-def npm(message):
+@bot.message_handler(content_types=["text"])
+def npm(message) -> None:
     """
     Функция для предоставления информаций по разделу "Неигровые экспонаты".
 
@@ -247,12 +267,9 @@ def npm(message):
         return
     chat_id = message.chat.id
 
-    # Как и в предыдущей функции, создаём список кнопок, используя генератор
-    # списка. Опираемся на данные из файла database.json. Неигровые экспонаты
-    # там находятся в числовом диапазоне от 15 до 24 включительно.
-    npa_buttons = [item['name'] for item in data
-                   if 14 < data.index(item) < 25]
-    npa_buttons.append('<<- Вернуться назад')
+    npa_buttons = [item["name"] for item in data if
+                   item["type"] == "NPA"]
+    npa_buttons.append("<<- Вернуться назад")
     npakeys = create_keyboard(npa_buttons)
     bot.send_message(chat_id, 'В <b>GoPinball</b> можно поиграть не на '
                               'всех автоматах.\nНекоторые из экспонатов '
@@ -262,8 +279,8 @@ def npm(message):
     bot.register_next_step_handler_by_chat_id(chat_id, final_giver)
 
 
-@bot.message_handler(content_types=['text'])
-def pinballs(message):
+@bot.message_handler(content_types=["text"])
+def pinballs(message) -> None:
     """
     Функция-обработчик для предоставления информаций по разделу "Пинболы".
 
@@ -275,11 +292,9 @@ def pinballs(message):
         return
     chat_id = message.chat.id
 
-    # Аналогично предыдущим функциям создаём список кнопок. Пинболы там
-    # находятся в числовом диапазоне от 25 до 58 включительно.
-    pinball_buttons = [item['name'] for item in data
-                       if 24 < data.index(item) <= 58]
-    pinball_buttons.append('<<- Вернуться назад')
+    pinball_buttons = [item["name"] for item in data if
+                       item["type"] == "Pinball"]
+    pinball_buttons.append("<<- Вернуться назад")
     pinballkeys = create_keyboard(pinball_buttons)
     bot.send_message(chat_id, 'Гордость музея <b>GoPinball</b> - это '
                               'крупнейшая в России коллекция пинболов, '
@@ -289,8 +304,8 @@ def pinballs(message):
     bot.register_next_step_handler_by_chat_id(chat_id, final_giver)
 
 
-@bot.message_handler(content_types=['text'])
-def videoguide(message):
+@bot.message_handler(content_types=["text"])
+def videoguide(message) -> None:
     """
     Функция для предоставления информаций по Видеогиду.
 
@@ -304,7 +319,7 @@ def videoguide(message):
     # которых не равно none. Во всех остальных - ссылки на видеоролики.
     video_buttons = [item['name'] for item in data if item['videoguide'] !=
                      'none']
-    video_buttons.append('<<- Вернуться назад')
+    video_buttons.append("<<- Вернуться назад")
     videokeys = create_keyboard(video_buttons)
     bot.send_message(chat_id, 'Для youtube-канала Музея <b>GoPinball</b>'
                               ' мы снимаем ролики с разбором правил, '
@@ -315,8 +330,8 @@ def videoguide(message):
     bot.register_next_step_handler_by_chat_id(chat_id, final_giver)
 
 
-@bot.message_handler(content_types=['text'])
-def final_giver(message):
+@bot.message_handler(content_types=["text"])
+def final_giver(message) -> None:
     """
     Обработчик для завершающего этапа взаимодействия с пользователем
     после выбора аркады, пинбола или другого контента.
@@ -338,27 +353,27 @@ def final_giver(message):
         return
 
     chat_id = message.chat.id
-    returnkey = create_keyboard(['<<--- Вернуться назад'])
+    returnkey = create_keyboard(["<<--- Вернуться назад"])
 
-    if message.text == '<<- Вернуться назад':
+    if message.text == "<<- Вернуться назад":
         back_to_menu(message)
         return
 
     for item in data:
-        if item['name'] == message.text:
+        if item["name"] == message.text:
             for key, value in guide_selection.items():
                 if key == chat_id:
-                    if value.get('guide_type') == 'Текстовый гид':
+                    if value.get("guide_type") == "Текстовый гид":
                         bot.send_message(chat_id,
                                          f"<b>{item['name']}</b>"
                                          f"\n\n\n{item['textguide']}",
                                          reply_markup=returnkey,
                                          parse_mode='HTML')
-                    elif value.get('guide_type') == 'Аудиогид':
+                    elif value.get("guide_type") == "Аудиогид":
                         bot.send_voice(chat_id,
                                        voice=open(item['audioguide'], 'rb'),
                                        reply_markup=returnkey)
-                    elif value.get('guide_type') == 'Видеогид':
+                    elif value.get("guide_type") == "Видеогид":
                         bot.send_message(chat_id,
                                          f"<b>{item['name']}</b>"
                                          f"\n\n{item['videoguide']}",
@@ -367,8 +382,8 @@ def final_giver(message):
     bot.register_next_step_handler_by_chat_id(chat_id, back_to_menu)
 
 
-@bot.message_handler(content_types=['text'])
-def text_intrude(message):
+@bot.message_handler(content_types=["text"])
+def text_intrude(message) -> None:
     """
     Обработчик для сообщений, не соответствующих логике бота.
 
@@ -378,15 +393,15 @@ def text_intrude(message):
     """
     chat_id = message.chat.id
     guide_selection[chat_id] = {}
-    backkey = create_keyboard(['Вернуться в начало'])
+    backkey = create_keyboard(["Вернуться в начало"])
     bot.send_message(chat_id, 'Для навигации по боту пользуйтесь '
                               'кнопками. Бот не запрограммирован на '
                               'другой текст.', reply_markup=backkey)
     starter(message)
 
 
-@bot.message_handler(content_types=['text'])
-def back_to_menu(message):
+@bot.message_handler(content_types=["text"])
+def back_to_menu(message) -> None:
     """
     Обработчик для возврата пользователя в главное меню или предыдущий раздел.
 
@@ -405,38 +420,39 @@ def back_to_menu(message):
 
     chat_id = message.chat.id
 
-    if message.text == '<<- Вернуться назад':
+    if message.text == "<<- Вернуться назад":
         guide_selection[chat_id] = {}
         starter(message)
         return
 
-    if message.text == '<<--- Вернуться назад':
-        for key, value in guide_selection.items():
-            if key == chat_id:
-                same = value.get('guide_type')
-                if value.get('section_type') == 'Аркады':
-                    guide_selection[chat_id] = {'guide_type': same,
-                                                'section_type': 'Аркады'}
-                    arcades(message)
-                elif value.get('section_type') == 'Неигровые экспонаты':
-                    guide_selection[chat_id] = {'guide_type': same,
-                                                'section_type':
-                                                    'Неигровые экспонаты'}
-                    npm(message)
-                elif value.get('section_type') == 'Пинболы':
-                    guide_selection[chat_id] = {'guide_type': same,
-                                                'section_type': 'Пинболы'}
-                    pinballs(message)
-                elif value.get('guide_type') == 'Видеогид':
-                    guide_selection[chat_id] = {'guide_type': 'Видеогид',
-                                                'section_type': ''}
-                    videoguide(message)
-    else:
+    if message.text != "<<--- Вернуться назад":
         text_intrude(message)
+        return
+
+    for key, value in guide_selection.items():
+        if key == chat_id:
+            same = value.get("guide_type")
+            if value.get("section_type") == "Аркады":
+                guide_selection[chat_id] = {'guide_type': same,
+                                            'section_type': 'Аркады'}
+                arcades(message)
+            elif value.get("section_type") == "Неигровые экспонаты":
+                guide_selection[chat_id] = {'guide_type': same,
+                                            'section_type':
+                                                'Неигровые экспонаты'}
+                npm(message)
+            elif value.get("section_type") == "Пинболы":
+                guide_selection[chat_id] = {'guide_type': same,
+                                            'section_type': 'Пинболы'}
+                pinballs(message)
+            elif value.get("guide_type") == "Видеогид":
+                guide_selection[chat_id] = {'guide_type': 'Видеогид',
+                                            'section_type': ''}
+                videoguide(message)
 
 
-if __name__ == '__main__':
-    print('Бот запущен!')
+if __name__ == "__main__":
+    print("Бот запущен!")
     while True:
         try:
             bot.polling(none_stop=True)
