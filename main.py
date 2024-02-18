@@ -24,6 +24,8 @@ guide_selection = {}
 # {6845820748: {'guide_type': 'Текстовый гид', 'section_type': 'Пинболы'}}
 
 messages = {}
+
+
 # В этом словаре будут отображаться значения последних нажатых кнопок юзеров.
 # Это нужно для проверки на дублирование нажатий. См. функцию check_duplicate
 
@@ -145,15 +147,15 @@ def section_selection(message) -> None:
     # Отправка сообщения с вариантами разделов гида
     if message.text in {"Аудиогид", "Текстовый гид"}:
         sectionkeys = create_keyboard(["Вступление",
-                                        "Аркады",
-                                        "Неигровые экспонаты",
-                                        "Пинболы",
-                                        "<<- Вернуться назад"])
+                                       "Аркады",
+                                       "Неигровые экспонаты",
+                                       "Пинболы",
+                                       "<<- Вернуться назад"])
         bot.send_message(chat_id, f"Вы выбрали раздел "
-                                        f"<b>{guide_type}</b>.\n\nОтлично!"
-                                        f"\nТеперь выберите раздел гида.",
-                                        reply_markup=sectionkeys,
-                                        parse_mode="HTML")
+                                  f"<b>{guide_type}</b>.\n\nОтлично!"
+                                  f"\nТеперь выберите раздел гида.",
+                         reply_markup=sectionkeys,
+                         parse_mode="HTML")
         bot.register_next_step_handler_by_chat_id(chat_id, section_showpiece)
     elif message.text in {"Видеогид"}:
         videoguide(message)
@@ -221,10 +223,10 @@ def intro(message) -> None:
     for key, value in guide_selection.items():
         if value.get("guide_type") == "Аудиогид":
             bot.send_voice(chat_id, voice=open(data[0]["audioguide"], "rb"),
-                reply_markup=backkey)
+                           reply_markup=backkey)
         elif value.get("guide_type") == "Текстовый гид":
             bot.send_message(chat_id, data[0]["textguide"], parse_mode="HTML",
-                reply_markup=backkey)
+                             reply_markup=backkey)
     bot.register_next_step_handler_by_chat_id(chat_id, back_to_menu)
 
 
