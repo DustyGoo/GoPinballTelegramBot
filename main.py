@@ -218,16 +218,19 @@ def intro(message) -> None:
 
     chat_id = message.chat.id
     backkey = create_keyboard(["<<- Вернуться назад"])
-
+    print(guide_selection)
     # Отправка введения к выбранному виду гида
     for key, value in guide_selection.items():
+        if key != chat_id:
+            continue
         if value.get("guide_type") == "Аудиогид":
             bot.send_voice(chat_id, voice=open(data[0]["audioguide"], "rb"),
                            reply_markup=backkey)
         elif value.get("guide_type") == "Текстовый гид":
             bot.send_message(chat_id, data[0]["textguide"], parse_mode="HTML",
                              reply_markup=backkey)
-    bot.register_next_step_handler_by_chat_id(chat_id, back_to_menu)
+    print(guide_selection)
+    bot.register_next_step_handler(message, back_to_menu)
 
 
 @bot.message_handler(content_types=["text"])
