@@ -1,9 +1,24 @@
 import json
+import os
+import time
 
 import telebot
 from telebot import types
 
-from configuration import TOKEN
+from configuration import TOKEN, ADMIN_ID
+
+# Загрузка статистики
+STATS_FILE = "stats.json"
+if os.path.exists(STATS_FILE):
+    with open(STATS_FILE, "r", encoding="utf-8") as f:
+        bot_stats = json.load(f)
+else:
+    bot_stats = {"total_starts": 0, "unique_users": {}}
+
+def save_stats():
+    with open(STATS_FILE, "w", encoding="utf-8") as f:
+        json.dump(bot_stats, f, ensure_ascii=False, indent=4)
+
 
 with open("database.json", encoding="utf-8") as db:
     data = json.load(db)
@@ -74,6 +89,10 @@ def check_duplicate(message) -> bool:
     chat_id = message.chat.id
     text = message.text
 
+    # Обновляем время активности пользователя
+    bot_stats["unique_users"][str(chat_id)] = time.time()
+    save_stats()
+
     # Проверка на специальные кнопки, которые могут быть нажаты повторно
     if text in ("<<- Вернуться назад",
                 "<<--- Вернуться назад",
@@ -95,6 +114,37 @@ def check_duplicate(message) -> bool:
     return False
 
 
+@bot.message_handler(commands=["stats"])
+def get_stats(message) -> None:
+    """
+    Команда получения статистики использования бота. 
+    Доступна только администратору.
+    """
+    if message.chat.id == ADMIN_ID:
+        current_time = time.time()
+        day_seconds = 86400
+        
+        users_week = 0
+        users_month = 0
+        users_all = len(bot_stats["unique_users"])
+        
+        for last_active in bot_stats["unique_users"].values():
+            if current_time - last_active <= day_seconds * 7:
+                users_week += 1
+            if current_time - last_active <= day_seconds * 30:
+                users_month += 1
+                
+        stats_text = (
+            "📊 <b>Статистика использования бота:</b>\n\n"
+            f"Всего запусков бота (команда /start): {bot_stats['total_starts']}\n\n"
+            f"👥 <b>Уникальные пользователи:</b>\n"
+            f"За неделю (активные): {users_week}\n"
+            f"За месяц (активные): {users_month}\n"
+            f"За всё время: {users_all}"
+        )
+        bot.send_message(message.chat.id, stats_text, parse_mode="HTML")
+
+
 @bot.message_handler(commands=["start"])
 def starter(message) -> None:
     """
@@ -110,6 +160,10 @@ def starter(message) -> None:
         message (telebot.types.Message): сообщение от пользователя
     """
 
+    # Обновление статистики по запускам
+    bot_stats["total_starts"] += 1
+    save_stats()
+    
     # Тут и далее условие 'if check_duplicate' проверяет не дублируется ли
     # текст нажатой кнопки. Иначе начинается полный бардак.
     if check_duplicate(message):
